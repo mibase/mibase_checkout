@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* Theme supports both the OS/browser preference and the in-app theme toggle.
+   The in-app selection takes priority when data-theme is set. */
+
+
+:root {
+    /* Brand accents - identical in both themes */
+    --primary-pink: #F0739A;
+    --primary-cyan: #52CCD2;
+    --primary-orange: #FFA500;
+    --on-accent: #242222;
+    --white: #FFFFFF;
+    --container-width: 1440px;
+    /* Light theme */
+    --hero-pink: #EDE1E1;
+    --text-primary: #242222;
+    --scrollbar-thumb: #C4C5CA;
+    color-scheme: light;
+    --background: #F5F6F8;
+    --surface: #FFFFFF;
+    --muted-text: #5F5F5F;
+    --border-light: #E9E9E9;
+    --card-background: #F8F9FA;
+    --announcement-bg: #F6E7E8;
+    --disabled-bg: #C7C7C7;
+    --disabled-text: #6B6B6B;
+    --error-text: #C0392B;
+    /* Brand pink/cyan are too light to be text on light backgrounds - use these for text */
+    --pink-text: #B8325F;
+    --cyan-text: #167075;
+    /* Text on an --error-text background (overdue/expired badges): 5.4:1 */
+    --on-error: #FFFFFF;
+    --blocked-bg: #D9D2B8;
+    --blocked-text: #6B6349;
+}
+
+
+/* Use OS preference when the user has not selected a theme manually. */
+
+@media (prefers-color-scheme: dark) {
+     :root:not([data-theme]) {
+        --hero-pink: #2E2428;
+        --text-primary: #DADADD;
+        --scrollbar-thumb: #4A4C53;
+        color-scheme: dark;
+        --background: #121316;
+        --surface: #1E1F22;
+        --muted-text: #9E9EA4;
+        --border-light: #33353A;
+        --card-background: #2A2B2F;
+        --announcement-bg: #2A2226;
+        --disabled-bg: #3A3B3E;
+        --disabled-text: #8A8B8E;
+        --error-text: #DE766F;
+        --pink-text: #E68AA6;
+        --cyan-text: #6CC3C8;
+        /* Softer accent fills - the light-mode brand colours glare on a dark page.
+       Dark button text (--on-accent) stays at least 4.7:1 on each. */
+        --primary-pink: #D46A8A;
+        --primary-cyan: #3FA3A8;
+        --primary-orange: #D9962E;
+        --on-error: #242222;
+        --blocked-bg: #4A4636;
+        --blocked-text: #C9C1A0;
+    }
+}
+
+
+/* Explicit light theme selected by the in-app toggle. */
+
+html[data-theme="light"] {
+    --hero-pink: #EDE1E1;
+    --text-primary: #242222;
+    --scrollbar-thumb: #C4C5CA;
+    color-scheme: light;
+    --background: #F5F6F8;
+    --surface: #FFFFFF;
+    --muted-text: #5F5F5F;
+    --border-light: #E9E9E9;
+    --card-background: #F8F9FA;
+    --announcement-bg: #F6E7E8;
+    --disabled-bg: #C7C7C7;
+    --disabled-text: #6B6B6B;
+    --error-text: #C0392B;
+    /* Brand pink/cyan are too light to be text on light backgrounds - use these for text */
+    --pink-text: #B8325F;
+    --cyan-text: #167075;
+    /* Text on an --error-text background (overdue/expired badges): 5.4:1 */
+    --on-error: #FFFFFF;
+    --blocked-bg: #D9D2B8;
+    --blocked-text: #6B6349;
+}
+
+
+/* Explicit dark theme selected by the in-app toggle. */
+
+html[data-theme="dark"] {
+    --hero-pink: #2E2428;
+    --text-primary: #DADADD;
+    --scrollbar-thumb: #4A4C53;
+    color-scheme: dark;
+    --background: #121316;
+    --surface: #1E1F22;
+    --muted-text: #9E9EA4;
+    --border-light: #33353A;
+    --card-background: #2A2B2F;
+    --announcement-bg: #2A2226;
+    --disabled-bg: #3A3B3E;
+    --disabled-text: #8A8B8E;
+    --error-text: #DE766F;
+    --pink-text: #E68AA6;
+    --cyan-text: #6CC3C8;
+    /* Softer accent fills - the light-mode brand colours glare on a dark page.
+     Dark button text (--on-accent) stays at least 4.7:1 on each. */
+    --primary-pink: #D46A8A;
+    --primary-cyan: #3FA3A8;
+    --primary-orange: #D9962E;
+    --on-error: #242222;
+    --blocked-bg: #4A4636;
+    --blocked-text: #C9C1A0;
+}
+
+html {
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

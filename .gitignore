@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.idea
+.env*.local
+.claude/
+/CLAUDE.md
+
+# Toy photos are large and library-specific
+toy_images/
+
+api_public/config.php
+api_public/vendor/
+api_public/composer.phar

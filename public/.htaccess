@@ -1,0 +1,17 @@
+# Single-page app: the React router owns URLs like /browse and /login, so a
+# request that is not a real file or folder must get index.html. Without this,
+# refreshing /browse (or opening a link to it) is a 404 from the web server.
+#
+# Vite copies this file into dist/ next to index.html, so it works wherever the
+# built folder is put (site root or a subfolder such as /mibase_mem/). It needs
+# mod_rewrite enabled and "AllowOverride All" (or at least FileInfo) for that
+# folder in the Apache config.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Real files (JS, CSS, images) and folders are served as they are.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  # A missing API endpoint or toy photo should stay a 404, not turn into the app.
+  RewriteCond %{REQUEST_URI} !/(api_public|toy_images)/
+  RewriteRule ^ index.html [L]
+</IfModule>
