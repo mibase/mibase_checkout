@@ -15,7 +15,7 @@ Same stack as the Mibase member portal (`MEM_V2`): React 18 + Vite 6 + Tailwind 
 1. The folder must be `C:\xampp\htdocs\mibase_checkout` (served at `http://localhost/mibase_checkout`). Start Apache and PostgreSQL.
 2. Copy `api_public/config.sample.php` to `api_public/config.php` and set the DB credentials and the `self_checkout` section (gitignored). `self_checkout.photo_dir` must be outside `htdocs`.
 3. PHP needs the GD extension (bundled with XAMPP): make sure `extension=gd` is not commented out in `C:\xampp\php\php.ini`, then restart Apache. `C:\xampp\php\php.exe -r "var_dump(extension_loaded('gd'));"` should print `true`.
-4. Database tables: applied as MEM_V2 migration `db/migrations/0010_self_checkout.sql` (copy in `db/self_checkout.sql`). From `../MEM_V2`: `php db/backup.php <label>` then `php db/migrate.php`.
+4. Database tables: this repo's migrations live in `db/migrations/`. Take a backup (e.g. `php ../MEM_V2/db/backup.php <label>`), then run `php db/migrate.php` (`php db/migrate.php status` shows what's applied). History is kept in `public.self_checkout_migrations`, separate from MEM_V2's `schema_migrations`.
 5. `npm install`
 6. Optional, for mail/Claude/PayPal: `composer install --working-dir=api_public`
 

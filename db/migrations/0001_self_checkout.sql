@@ -1,7 +1,6 @@
 -- Member self-checkout support tables (mibase_checkout).
--- Applied as MEM_V2 migration db/migrations/0010_self_checkout.sql (the shared migration history
--- for this database); this copy is kept here for review. Idempotent and additive only: no change to
--- any existing legacy table. No foreign keys to legacy tables (they lack the constraints, and other
+-- Applied with this repo's runner: php db/migrate.php (history in public.self_checkout_migrations).
+-- Idempotent and additive only: no change to any existing legacy table. No foreign keys to legacy tables (they lack the constraints, and other
 -- apps delete/merge rows); integrity is enforced by the self-checkout transactions.
 
 -- Failed PIN attempts, per typed member ID and per client IP (lockouts).
