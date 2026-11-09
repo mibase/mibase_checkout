@@ -15,6 +15,7 @@ export default function ReturnPage() {
   const [loans, setLoans] = useState(null);
   const [selected, setSelected] = useState(null); // {transaction_id?, idcat, name?}
   const [typed, setTyped] = useState("");
+  const [typedError, setTypedError] = useState("");
   const [photo, setPhoto] = useState(null);
   const [requestId, setRequestId] = useState("");
   const [done, setDone] = useState(null);
@@ -45,8 +46,14 @@ export default function ReturnPage() {
     e.preventDefault();
     const id = typed.trim().toUpperCase();
     if (!id) return;
+    // `loans` is every open loan of this member, so an ID not in it can't be
+    // returned: say so now rather than after the photo (the server still checks).
     const match = loans?.find((l) => l.idcat.toUpperCase() === id);
-    choose(match ?? { idcat: id });
+    if (!match) {
+      setTypedError("This toy isn't on loan to you. Please see a volunteer.");
+      return;
+    }
+    choose(match);
   }
 
   async function confirm() {
@@ -154,10 +161,14 @@ export default function ReturnPage() {
               label="Or type the toy ID"
               numeric={false}
               value={typed}
-              onChange={(v) => setTyped(v.toUpperCase())}
+              onChange={(v) => {
+                setTyped(v.toUpperCase());
+                setTypedError("");
+              }}
               maxLength={20}
               autoCapitalize="characters"
             />
+            {typedError && <Message tone="error">{typedError}</Message>}
             <BigButton type="submit" variant="secondary" disabled={!typed.trim()}>
               Use this toy ID
             </BigButton>
