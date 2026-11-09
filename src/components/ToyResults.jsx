@@ -11,17 +11,18 @@ const TOY_CODES = new Set(["ON_LOAN", "RESERVED", "HELD", "NOT_IN_CIRCULATION", 
 const smallButton =
   "min-h-11 shrink-0 rounded-lg px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 
-// The toy's photo (from search.php, '' when it has none). Lazy-loaded so a
+// The toy's photo (from search.php, '' when it has none; a teddy is shown then). Lazy-loaded so a
 // long result list doesn't download every photo on mobile data. Tapping it
 // shows it larger; tapping again shrinks it.
 function ToyPhoto({ url, inactive }) {
   const [failed, setFailed] = useState(false);
   const [big, setBig] = useState(false);
-  const box = "h-20 w-20 shrink-0 rounded-lg border border-[var(--border-light)] bg-[var(--card-background)]";
+  const box = "h-20 w-20 shrink-0 rounded-xl border border-[var(--border-light)] bg-[var(--card-background)]";
   if (!url || failed) {
+    // Same placeholder as the member portal's ItemImage: a teddy on the card background.
     return (
-      <div className={`${box} flex items-center justify-center text-xs text-[var(--muted-text)]`} aria-hidden="true">
-        No photo
+      <div className={`${box} flex items-center justify-center text-3xl ${inactive ? "opacity-60 grayscale" : ""}`} aria-hidden="true">
+        🧸
       </div>
     );
   }
