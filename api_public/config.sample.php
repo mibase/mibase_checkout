@@ -35,7 +35,8 @@ return [
         'website_url' => '',      // the library's own website, when it has one
         'admin_login_url' => '',  // where staff log in to the admin
 
-        // Toy photos live in toy_images/<toy_images_dir>/<idcat>.jpg. Leave
+        // Toy photos live in toy_images/<toy_images_dir>/<idcat>.jpg (shown in
+        // self-checkout search results; same value as the member portal). Leave
         // empty to use the shared toy_images/ folder directly (no subfolder).
         'toy_images_dir' => '',
 

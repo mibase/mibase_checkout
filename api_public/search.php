@@ -52,7 +52,7 @@ try {
         $toy = load_toy($pdo, $idcat);
         if (!$toy) continue;
         $code = borrow_check($pdo, $probe, $toy, $s)['code'];
-        $row = ['idcat' => $toy['idcat'], 'name' => $toy['toyname']];
+        $row = ['idcat' => $toy['idcat'], 'name' => $toy['toyname'], 'image_url' => toy_image_url($toy['idcat'])];
         if ($code === null) {
             $row['action'] = 'borrow';
             $row['due'] = due_date($member, $toy, $s);

@@ -69,6 +69,28 @@ function library_logo_url(): string {
     return preg_match('#^(https?://|/(?!/))#i', $value) ? $value : '';
 }
 
+// Toy photos, the same way the member portal finds them (MEM_V2 db.php):
+// <prefix><idcat lower-case>.jpg, where the prefix is config images_path, else
+// /toy_images/<library.toy_images_dir>/, else /toy_images/.
+function toy_image_prefix(): string {
+    $config = get_config();
+    $path = trim((string) ($config['images_path'] ?? ''));
+    if ($path !== '') return rtrim($path, '/') . '/';
+    $dir = trim((string) ($config['library']['toy_images_dir'] ?? ''));
+    return $dir !== '' ? '/toy_images/' . rawurlencode($dir) . '/' : '/toy_images/';
+}
+
+// The toy's photo URL, or '' when there is none. A photo on this server is only
+// returned if the file exists, so the page never shows a broken image; one on
+// another host (images_path with http) is returned as is.
+function toy_image_url(string $idcat): string {
+    $url = toy_image_prefix() . rawurlencode(strtolower(trim($idcat))) . '.jpg';
+    if (preg_match('#^https?://#i', $url)) return $url;
+    $root = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+    if ($root === '') return '';
+    return is_file($root . rawurldecode($url)) ? $url : '';
+}
+
 function get_setting_yes(PDO $pdo, string $name): bool {
     return strcasecmp(get_setting($pdo, $name), 'Yes') === 0;
 }

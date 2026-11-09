@@ -11,6 +11,47 @@ const TOY_CODES = new Set(["ON_LOAN", "RESERVED", "HELD", "NOT_IN_CIRCULATION", 
 const smallButton =
   "min-h-11 shrink-0 rounded-lg px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 
+// The toy's photo (from search.php, '' when it has none). Lazy-loaded so a
+// long result list doesn't download every photo on mobile data. Tapping it
+// shows it larger; tapping again shrinks it.
+function ToyPhoto({ url, inactive }) {
+  const [failed, setFailed] = useState(false);
+  const [big, setBig] = useState(false);
+  const box = "h-20 w-20 shrink-0 rounded-lg border border-[var(--border-light)] bg-[var(--card-background)]";
+  if (!url || failed) {
+    return (
+      <div className={`${box} flex items-center justify-center text-xs text-[var(--muted-text)]`} aria-hidden="true">
+        No photo
+      </div>
+    );
+  }
+  return (
+    <>
+      <button type="button" onClick={() => setBig(true)} className="shrink-0" aria-label="Show larger photo">
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+          className={`${box} object-cover ${inactive ? "opacity-60 grayscale" : ""}`}
+        />
+      </button>
+      {big && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--on-accent)_80%,transparent)] p-4"
+          onClick={() => setBig(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Toy photo"
+        >
+          <img src={url} alt="" className="max-h-full max-w-full rounded-xl object-contain" />
+        </div>
+      )}
+    </>
+  );
+}
+
 // Search results (FR-010b): Borrow (with due date), Return (on loan to this
 // member), or greyed out with a general status and no button.
 export default function ToyResults({ results, onChange, onBorrowed, onReturn }) {
@@ -63,6 +104,7 @@ export default function ToyResults({ results, onChange, onBorrowed, onReturn }) 
             }`}
           >
             <div className="flex items-center gap-3">
+              <ToyPhoto url={row.image_url} inactive={inactive} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold break-words">{row.name}</p>
                 <p className={`text-sm ${inactive ? "" : "text-[var(--muted-text)]"}`}>
