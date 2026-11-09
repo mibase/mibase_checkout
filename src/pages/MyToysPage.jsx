@@ -13,7 +13,21 @@ import { formatDate, formatShortDate } from "../lib/format";
 // Your Toys with Return / Return All, "Total toys N of M", toy search, Finish.
 export default function MyToysPage() {
   const navigate = useNavigate();
-  const { firstName, addBorrowed, addReturned } = useCheckout();
+  const { firstName, addBorrowed, addReturned, reset } = useCheckout();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Log out: end the visit on the server, clear everything in memory and go to
+  // the blank start screen (replace, so Back can't show member data).
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      await checkoutApi.finish();
+    } catch {
+      /* the session also expires on its own */
+    }
+    reset();
+    navigate("/", { replace: true });
+  }
   const [data, setData] = useState(null); // { loans, member_id, max_items, count }
   const [loadError, setLoadError] = useState("");
   const [message, setMessage] = useState(null); // { tone, title, lines[] }
@@ -190,10 +204,20 @@ export default function MyToysPage() {
           )}
         </ConfirmDialog>
       )}
-      <p className="text-xl font-bold">
-        {data ? `${data.member_id}: ` : ""}
-        {firstName}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-xl font-bold break-words">
+          {data ? `${data.member_id}: ` : ""}
+          {firstName}
+        </p>
+        <button
+          type="button"
+          onClick={logout}
+          disabled={loggingOut}
+          className="min-h-11 shrink-0 rounded-lg border-2 border-[var(--border-light)] bg-[var(--surface)] px-4 font-semibold disabled:opacity-50"
+        >
+          {loggingOut ? "Logging out…" : "Log out"}
+        </button>
+      </div>
 
       <div ref={messageRef} tabIndex={-1} className="focus:outline-none">
         {message && (
