@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BigButton from "../components/BigButton";
+import BarcodeScanner from "../components/BarcodeScanner";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Message from "../components/Message";
 import ReturnPanel from "../components/ReturnPanel";
@@ -86,6 +87,24 @@ export default function MyToysPage() {
       setSearching(false);
     }
   }, []);
+
+  // Scan toy: the barcode text goes into the search box and is searched, so the
+  // member sees the toy with its Borrow / Return button as if they had typed it.
+  const [scanning, setScanning] = useState(false);
+  const closeScanner = useCallback(() => setScanning(false), []);
+  const scanned = useCallback(
+    (text) => {
+      setScanning(false);
+      const q = text.slice(0, 60);
+      setQuery(q);
+      if (q.length < 2) {
+        setSearchError("That barcode isn't a toy ID. Please type the toy ID instead.");
+        return;
+      }
+      runSearch(q);
+    },
+    [runSearch]
+  );
 
   function submitSearch(e) {
     e.preventDefault();
@@ -336,6 +355,10 @@ export default function MyToysPage() {
             </button>
           </div>
         </form>
+        <BigButton variant="secondary" onClick={() => setScanning(true)}>
+          <span aria-hidden="true">📷 </span>Scan toy barcode
+        </BigButton>
+        {scanning && <BarcodeScanner onScan={scanned} onClose={closeScanner} />}
         {searchError && <Message tone="error">{searchError}</Message>}
         {results && (
           <ToyResults
