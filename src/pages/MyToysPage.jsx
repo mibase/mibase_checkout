@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BigButton from "../components/BigButton";
+import ConfirmDialog from "../components/ConfirmDialog";
 import Message from "../components/Message";
 import ReturnPanel from "../components/ReturnPanel";
 import ToyResults from "../components/ToyResults";
@@ -22,7 +23,25 @@ export default function MyToysPage() {
   const [searchError, setSearchError] = useState("");
   const [searching, setSearching] = useState(false);
   const [returning, setReturning] = useState(null); // { kind: 'one', item, requestId } | { kind: 'all', loans, requestId }
+  const [askClean, setAskClean] = useState(null); // the return waiting for "Have you cleaned it?"
   const messageRef = useRef(null);
+
+  // Before any return, ask whether the toy has been cleaned. Yes goes on to the
+  // photo step; Not yet closes the question and asks them to clean it first.
+  const startReturn = (r) => setAskClean({ ...r, requestId: newRequestId() });
+  const cleanYes = () => {
+    setReturning(askClean);
+    setAskClean(null);
+  };
+  const cleanNo = useCallback(() => {
+    const all = askClean?.kind === "all";
+    setAskClean(null);
+    setMessage({
+      tone: "info",
+      title: all ? "Please clean the toys first" : "Please clean the toy first",
+      lines: [`Clean ${all ? "them" : "it"}, then tap Return again. If you need help, please see a volunteer.`],
+    });
+  }, [askClean]);
 
   const loadLoans = useCallback(async () => {
     try {
@@ -153,6 +172,24 @@ export default function MyToysPage() {
   const loans = data?.loans ?? [];
   return (
     <div className="space-y-6">
+      {askClean && (
+        <ConfirmDialog
+          title={askClean.kind === "all" ? "Have you cleaned the toys?" : "Have you cleaned the toy?"}
+          yesLabel={askClean.kind === "all" ? "Yes, they are clean" : "Yes, it is clean"}
+          noLabel="Not yet"
+          onYes={cleanYes}
+          onNo={cleanNo}
+        >
+          {askClean.kind === "all" ? (
+            <p>Please make sure every toy is clean before you return it.</p>
+          ) : (
+            <p>
+              <span className="font-semibold">{askClean.item.name}</span> ({askClean.item.idcat}) needs to be clean
+              before you return it.
+            </p>
+          )}
+        </ConfirmDialog>
+      )}
       <p className="text-xl font-bold">
         {data ? `${data.member_id}: ` : ""}
         {firstName}
@@ -202,7 +239,7 @@ export default function MyToysPage() {
                     <td className="px-1 py-2">
                       <button
                         type="button"
-                        onClick={() => setReturning({ kind: "one", item: l, requestId: newRequestId() })}
+                        onClick={() => startReturn({ kind: "one", item: l })}
                         aria-label={`Return ${l.name}`}
                         className="min-h-11 w-full rounded-lg bg-[var(--primary-cyan)] px-2 font-semibold text-[var(--on-accent)]"
                       >
@@ -225,7 +262,7 @@ export default function MyToysPage() {
                     <td colSpan={2} className="px-1 py-2">
                       <button
                         type="button"
-                        onClick={() => setReturning({ kind: "all", loans, requestId: newRequestId() })}
+                        onClick={() => startReturn({ kind: "all", loans })}
                         className="min-h-11 w-full rounded-lg bg-[var(--primary-cyan)] px-2 font-semibold text-[var(--on-accent)]"
                       >
                         Return All
@@ -281,7 +318,7 @@ export default function MyToysPage() {
             results={results}
             onChange={setResults}
             onBorrowed={borrowed}
-            onReturn={(item) => setReturning({ kind: "one", item, requestId: newRequestId() })}
+            onReturn={(item) => startReturn({ kind: "one", item })}
           />
         )}
       </section>
