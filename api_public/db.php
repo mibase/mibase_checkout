@@ -62,6 +62,13 @@ function get_setting(PDO $pdo, string $name, string $default = ''): string {
     return ($value === false || $value === null) ? $default : trim((string) $value);
 }
 
+// The library's logo for the header (FR-020a): config library.logo_url, the same
+// value the member portal uses. Only http(s) URLs or root-relative paths; '' if none.
+function library_logo_url(): string {
+    $value = trim((string) (get_config()['library']['logo_url'] ?? ''));
+    return preg_match('#^(https?://|/(?!/))#i', $value) ? $value : '';
+}
+
 function get_setting_yes(PDO $pdo, string $name): bool {
     return strcasecmp(get_setting($pdo, $name), 'Yes') === 0;
 }

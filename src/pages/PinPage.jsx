@@ -27,7 +27,7 @@ export default function PinPage() {
     try {
       const visit = await checkoutApi.verify(memberId, typed);
       startVisit(visit);
-      navigate("/choose", { replace: true });
+      navigate("/toys", { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

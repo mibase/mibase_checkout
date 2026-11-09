@@ -51,7 +51,7 @@ export default function StartPage() {
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{status.library_name || "Toy library"}</h1>
+        <h1 className="text-2xl font-bold">Self-checkout</h1>
         <p className="mt-1 text-[var(--muted-text)]">Borrow or return toys with your phone.</p>
       </div>
       {notice && <Message tone="info">{notice}</Message>}

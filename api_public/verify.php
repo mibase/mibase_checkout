@@ -54,6 +54,8 @@ try {
     $token = checkout_begin((int) $member['id'], $firstName);
     send_json([
         'first_name' => $firstName,
+        'member_id' => (int) $member['id'],
+        'max_items' => (int) $member['maxnoitems'],
         'token' => $token,
         'expires_in' => checkout_config()['session_minutes'] * 60,
     ]);

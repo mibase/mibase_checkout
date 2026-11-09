@@ -25,9 +25,10 @@ return [
         'currency' => 'AUD',
     ],
 
-    // Optional - shown on the logged-out home page. The library's name comes
-    // from the database (settings.libraryname); these three do not, so set them
-    // per library. Leave a value empty to hide it. Each must be an http(s) URL
+    // Optional - shown on the logged-out home page; logo_url is also the logo in
+    // the self-checkout header (use the same value as the member portal). The
+    // library's name comes from the database (settings.libraryname); these three
+    // do not, so set them per library. Leave a value empty to hide it. Each must be an http(s) URL
     // or a path starting with "/" (e.g. '/images/carlson/logo.png').
     'library' => [
         'logo_url' => '',

@@ -22,7 +22,17 @@ try {
         'due' => $r['due'],
         'overdue' => (bool) $r['overdue'],
     ], $stmt->fetchAll());
-    send_json(['loans' => $loans]);
+    // Member number and borrowing limit for "203: Michelle" and "Total toys N of M"
+    // (FR-015). Nothing else about the member.
+    $limit = $pdo->prepare('SELECT coalesce(m.maxnoitems, 0) FROM public.borwrs b
+                              LEFT JOIN public.membertype m ON m.membertype = b.membertype WHERE b.id = ?');
+    $limit->execute([(int) $visit['borid']]);
+    send_json([
+        'loans' => $loans,
+        'member_id' => (int) $visit['borid'],
+        'max_items' => (int) $limit->fetchColumn(),
+        'count' => count($loans),
+    ]);
 } catch (Throwable $e) {
     error_log('loans.php: ' . $e->getMessage());
     send_json_error('Something went wrong. Please try again.', 500);

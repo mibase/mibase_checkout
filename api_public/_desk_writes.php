@@ -69,13 +69,11 @@ function borrow_toy(PDO $pdo, int $borid, string $idcat, string $location): arra
     }
 }
 
-// Return one toy on loan to $borid, identified by transaction id or toy ID, with
-// its photo (prepared by photo_prepare). Ports return_toy() + qtoy(). The photo
-// file is only moved into place after the database commit; on any failure
-// nothing is recorded and the temp file is removed.
+// The database part of one return, in its own transaction: ports return_toy() +
+// qtoy() and records the photo row ($photo from photo_prepare). Does not touch the
+// photo file; callers move it into place after their returns commit.
 // Returns ['ok' => true, idcat, name, late, fine_charged, message] or ['ok' => false, 'code' => ...].
-function return_toy_self(PDO $pdo, int $borid, ?int $transactionId, string $idcat, array $photo, string $location): array {
-    $s = desk_settings($pdo);
+function return_loan_write(PDO $pdo, array $s, int $borid, ?int $transactionId, string $idcat, array $photo, string $location): array {
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare(
@@ -87,7 +85,6 @@ function return_toy_self(PDO $pdo, int $borid, ?int $transactionId, string $idca
         $loan = $stmt->fetch();
         if (!$loan) {
             $pdo->rollBack();
-            photo_discard($photo);
             return ['ok' => false, 'code' => 'NOT_ON_LOAN_TO_YOU'];
         }
         $m = load_member($pdo, $borid);
@@ -138,10 +135,8 @@ function return_toy_self(PDO $pdo, int $borid, ?int $transactionId, string $idca
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        photo_discard($photo);
         throw $e;
     }
-    photo_commit($photo);
 
     $late = $daysOverdue > 0;
     $message = $late
@@ -151,4 +146,58 @@ function return_toy_self(PDO $pdo, int $borid, ?int $transactionId, string $idca
         : 'Thank you!';
     return ['ok' => true, 'idcat' => $loan['idcat'], 'name' => $t['toyname'], 'late' => $late,
             'fine_charged' => number_format($fine, 2, '.', ''), 'message' => $message];
+}
+
+// Return one toy on loan to $borid, identified by transaction id or toy ID, with
+// its photo. The photo file is only moved into place after the database commit;
+// on any failure nothing is recorded and the temp file is removed.
+function return_toy_self(PDO $pdo, int $borid, ?int $transactionId, string $idcat, array $photo, string $location): array {
+    try {
+        $r = return_loan_write($pdo, desk_settings($pdo), $borid, $transactionId, $idcat, $photo, $location);
+    } catch (Throwable $e) {
+        photo_discard($photo);
+        throw $e;
+    }
+    if (!$r['ok']) {
+        photo_discard($photo);
+        return $r;
+    }
+    photo_commit($photo);
+    return $r;
+}
+
+// Return All (FR-016a): one photo of all the toys together. Each loan is checked
+// and recorded in its own transaction, so one that can't be returned (e.g. it was
+// returned at the desk meanwhile) doesn't stop the others. Every returned loan gets
+// its own photo row pointing at the same stored file.
+// Returns ['returned' => [result...], 'not_returned' => [['transaction_id' => id], ...]].
+function return_all_self(PDO $pdo, int $borid, array $transactionIds, array $photo, string $location): array {
+    $s = desk_settings($pdo);
+    $returned = [];
+    $notReturned = [];
+    foreach ($transactionIds as $id) {
+        try {
+            $r = return_loan_write($pdo, $s, $borid, $id, '', $photo, $location);
+        } catch (Throwable $e) {
+            error_log("return_all_self: transaction $id: " . $e->getMessage());
+            $r = ['ok' => false];
+        }
+        if ($r['ok']) {
+            unset($r['ok']);
+            $returned[] = $r;
+        } else {
+            $notReturned[] = ['transaction_id' => $id];
+        }
+    }
+    if (!$returned) {
+        photo_discard($photo);
+    } else {
+        try {
+            photo_commit($photo);
+        } catch (Throwable $e) {
+            // The returns are recorded; only the shared file is missing. Staff see the rows.
+            error_log('return_all_self: photo not saved: ' . $e->getMessage());
+        }
+    }
+    return ['returned' => $returned, 'not_returned' => $notReturned];
 }

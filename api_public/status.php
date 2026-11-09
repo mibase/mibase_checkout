@@ -10,6 +10,7 @@ try {
     send_json([
         'enabled' => get_setting_yes($pdo, 'mem_self_checkout'),
         'library_name' => get_setting($pdo, 'libraryname'),
+        'logo_url' => library_logo_url(),
         'session' => $visit ? [
             'first_name' => $visit['first_name'],
             'expires_in' => max(0, $minutes * 60 - (time() - $visit['last_activity'])),

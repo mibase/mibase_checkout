@@ -6,7 +6,9 @@ import { resizeToJpeg } from "../lib/photo";
 // Opens the phone camera (capture="environment"), shows a preview, and hands
 // the resized JPEG blob to onChange. If the camera is blocked or nothing is
 // chosen, explains what to do (constitution IV).
-export default function PhotoCapture({ photo, onChange }) {
+const DEFAULT_HINT = "Take a photo of the toy on the returns shelf, just the toy please.";
+
+export default function PhotoCapture({ photo, onChange, hint = DEFAULT_HINT }) {
   const inputRef = useRef(null);
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
@@ -39,9 +41,7 @@ export default function PhotoCapture({ photo, onChange }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-[var(--muted-text)]">
-        Take a photo of the toy on the returns shelf, just the toy please.
-      </p>
+      <p className="text-[var(--muted-text)]">{hint}</p>
       <input
         ref={inputRef}
         type="file"

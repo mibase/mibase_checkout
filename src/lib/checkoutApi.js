@@ -8,7 +8,7 @@ export const checkoutApi = {
   status: () => apiGet("/status.php"),
   verify: (memberId, pin) => apiPost("/verify.php", { member_id: memberId, pin }),
   loans: () => apiGet("/loans.php"),
-  toy: (idcat) => apiPost("/toy.php", { idcat }),
+  search: (q) => apiPost("/search.php", { q }),
   borrow: (idcat, requestId) => apiPost("/borrow.php", { idcat, request_id: requestId }),
   returnToy: ({ transactionId, idcat, requestId, photoBlob }) => {
     const fd = new FormData();
@@ -17,6 +17,13 @@ export const checkoutApi = {
     fd.append("request_id", requestId);
     fd.append("photo", photoBlob, "return.jpg");
     return apiUpload("/return.php", fd);
+  },
+  returnAll: ({ transactionIds, requestId, photoBlob }) => {
+    const fd = new FormData();
+    fd.append("transaction_ids", transactionIds.join(","));
+    fd.append("request_id", requestId);
+    fd.append("photo", photoBlob, "return.jpg");
+    return apiUpload("/return_all.php", fd);
   },
   summary: () => apiGet("/summary.php"),
   finish: () => apiPost("/finish.php"),

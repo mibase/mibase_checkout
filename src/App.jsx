@@ -3,9 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import StartPage from "./pages/StartPage";
 import PinPage from "./pages/PinPage";
-import ChoosePage from "./pages/ChoosePage";
-import BorrowPage from "./pages/BorrowPage";
-import ReturnPage from "./pages/ReturnPage";
+import MyToysPage from "./pages/MyToysPage";
 import SummaryPage from "./pages/SummaryPage";
 import { useCheckout } from "./context/CheckoutContext";
 
@@ -19,10 +17,13 @@ function RequireVisit({ children }) {
 function ExpiryWatcher() {
   const { expiredAt } = useCheckout();
   const navigate = useNavigate();
-  const first = useRef(true);
+  // Act once per expiry: `navigate` changes on every page change, so without
+  // this an old expiry would keep sending the member back to the start screen.
+  const handled = useRef(expiredAt);
   useEffect(() => {
-    if (first.current) { first.current = false; return; }
-    if (expiredAt) navigate("/", { replace: true });
+    if (!expiredAt || expiredAt === handled.current) return;
+    handled.current = expiredAt;
+    navigate("/", { replace: true });
   }, [expiredAt, navigate]);
   return null;
 }
@@ -35,9 +36,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<StartPage />} />
           <Route path="/pin" element={<PinPage />} />
-          <Route path="/choose" element={<RequireVisit><ChoosePage /></RequireVisit>} />
-          <Route path="/borrow" element={<RequireVisit><BorrowPage /></RequireVisit>} />
-          <Route path="/return" element={<RequireVisit><ReturnPage /></RequireVisit>} />
+          <Route path="/toys" element={<RequireVisit><MyToysPage /></RequireVisit>} />
           <Route path="/done" element={<RequireVisit><SummaryPage /></RequireVisit>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
