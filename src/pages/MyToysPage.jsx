@@ -6,7 +6,7 @@ import ReturnPanel from "../components/ReturnPanel";
 import ToyResults from "../components/ToyResults";
 import { useCheckout } from "../context/CheckoutContext";
 import { checkoutApi, newRequestId } from "../lib/checkoutApi";
-import { formatDate } from "../lib/format";
+import { formatDate, formatShortDate } from "../lib/format";
 
 // The one screen after the PIN (spec Screen Layout): member line, message,
 // Your Toys with Return / Return All, "Total toys N of M", toy search, Finish.
@@ -176,41 +176,66 @@ export default function MyToysPage() {
         {!data && !loadError && <p className="text-[var(--muted-text)]">Loading your toys…</p>}
         {data && loans.length === 0 && <p className="text-[var(--muted-text)]">You have no toys on loan.</p>}
         {loans.length > 0 && (
-          <ul className="space-y-2">
-            {loans.map((l) => (
-              <li
-                key={l.transaction_id}
-                className="flex items-center gap-3 rounded-xl border-2 border-[var(--border-light)] bg-[var(--surface)] p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold break-words">{l.name}</p>
-                  <p className="text-sm text-[var(--muted-text)]">
-                    {l.idcat} · due {formatDate(l.due)}
-                    {l.overdue && (
-                      <span className="ml-2 rounded bg-[var(--error-text)] px-2 py-0.5 text-xs font-bold text-[var(--on-error)]">
-                        Overdue
+          <div className="overflow-hidden rounded-xl border-2 border-[var(--border-light)]">
+            <table className="w-full table-fixed border-collapse bg-[var(--surface)] text-left">
+              <colgroup>
+                <col className="w-[20%]" />
+                <col />
+                <col className="w-[78px]" />
+                <col className="w-[66px]" />
+              </colgroup>
+              <thead className="bg-[var(--card-background)] text-sm">
+                <tr>
+                  <th scope="col" className="px-2 py-2 font-semibold">Toy#</th>
+                  <th scope="col" className="px-2 py-2 font-semibold">Toyname</th>
+                  <th scope="col" className="px-2 py-2 font-semibold">
+                    Return
+                  </th>
+                  <th scope="col" className="px-2 py-2 font-semibold">Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loans.map((l) => (
+                  <tr key={l.transaction_id} className="border-t border-[var(--border-light)] align-top">
+                    <td className="px-2 py-3 font-semibold break-words">{l.idcat}</td>
+                    <td className="px-2 py-3 break-words">{l.name}</td>
+                    <td className="px-1 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setReturning({ kind: "one", item: l, requestId: newRequestId() })}
+                        aria-label={`Return ${l.name}`}
+                        className="min-h-11 w-full rounded-lg bg-[var(--primary-cyan)] px-2 font-semibold text-[var(--on-accent)]"
+                      >
+                        Return
+                      </button>
+                    </td>
+                    <td className="px-2 py-3 text-sm">
+                      <span className={l.overdue ? "font-semibold text-[var(--error-text)]" : ""}>
+                        {formatShortDate(l.due)}
                       </span>
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setReturning({ kind: "one", item: l, requestId: newRequestId() })}
-                  className="min-h-11 shrink-0 rounded-lg border-2 border-[var(--primary-cyan)] bg-[var(--surface)] px-4 font-semibold"
-                >
-                  Return
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {loans.length >= 2 && (
-          <BigButton
-            variant="secondary"
-            onClick={() => setReturning({ kind: "all", loans, requestId: newRequestId() })}
-          >
-            Return All
-          </BigButton>
+                      {l.overdue && <span className="block text-xs font-bold text-[var(--error-text)]">Overdue</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {loans.length >= 2 && (
+                <tfoot>
+                  <tr className="border-t border-[var(--border-light)] bg-[var(--card-background)]">
+                    <td colSpan={2} />
+                    <td colSpan={2} className="px-1 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setReturning({ kind: "all", loans, requestId: newRequestId() })}
+                        className="min-h-11 w-full rounded-lg bg-[var(--primary-cyan)] px-2 font-semibold text-[var(--on-accent)]"
+                      >
+                        Return All
+                      </button>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
         )}
         {data && (
           <p className="font-semibold">
