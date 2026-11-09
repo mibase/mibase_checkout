@@ -65,4 +65,17 @@ return [
         'from_email' => 'CHANGE_ME@gmail.com',
         'from_name' => 'Mibase',
     ],
+
+    // Member self-checkout (borrow/return on the member's phone).
+    'self_checkout' => [
+        // Where return photos are saved. MUST be outside the web root (htdocs) so no URL can
+        // reach them; the admin portal reads them from here. Created on first use.
+        'photo_dir' => 'C:/xampp/mibase_data/return_photos',
+        // Written to transaction.location / borwrs.location / toys.location, like the desk's
+        // staff location. Most desk loans use '' (empty); set a branch code if your library uses one.
+        'location' => '',
+        'session_minutes' => 10,      // verified visit ends after this many idle minutes
+        'photo_days' => 90,           // return photos are deleted after this many days
+        'max_photo_bytes' => 5242880, // 5 MB upload limit
+    ],
 ];

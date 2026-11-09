@@ -1,0 +1,2 @@
+# db/ holds CLI-only scripts and SQL; never serve them over HTTP.
+Require all denied

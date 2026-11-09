@@ -1,9 +1,16 @@
 node_modules/
 dist/
+*.log
+.DS_Store
+Thumbs.db
 .idea
 .env*.local
 .claude/
 /CLAUDE.md
+
+# Spec Kit documents are kept local only
+.specify/
+/specs/
 
 # Toy photos are large and library-specific
 toy_images/

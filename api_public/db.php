@@ -19,6 +19,22 @@ function get_config(): array {
     return $config;
 }
 
+// The self_checkout section of config.php with defaults filled in.
+function checkout_config(): array {
+    $c = get_config()['self_checkout'] ?? [];
+    return [
+        'photo_dir' => rtrim((string) ($c['photo_dir'] ?? ''), '/\\'),
+        'location' => (string) ($c['location'] ?? ''),
+        'session_minutes' => (int) ($c['session_minutes'] ?? 10),
+        'photo_days' => (int) ($c['photo_days'] ?? 90),
+        'max_photo_bytes' => (int) ($c['max_photo_bytes'] ?? 5242880),
+    ];
+}
+
+// One connection per request. Unqualified names resolve to public, but all
+// self-checkout SQL is written with explicit public. names anyway.
+// The library's timezone (settings.timezone) is applied to PHP and to the
+// database session so "today" means the same thing in both, as the desk expects.
 function get_db_connection(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
@@ -29,7 +45,32 @@ function get_db_connection(): PDO {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $pdo->exec('SET search_path TO public');
+
+    $tz = get_setting($pdo, 'timezone');
+    if ($tz !== '' && in_array($tz, timezone_identifiers_list(), true)) {
+        date_default_timezone_set($tz);
+        $pdo->prepare('SELECT set_config(\'TimeZone\', ?, false)')->execute([$tz]);
+    }
     return $pdo;
+}
+
+// One setting by name (settings also holds admin secrets: never read whole rows).
+function get_setting(PDO $pdo, string $name, string $default = ''): string {
+    $stmt = $pdo->prepare('SELECT setting_value FROM public.settings WHERE setting_name = ? ORDER BY id LIMIT 1');
+    $stmt->execute([$name]);
+    $value = $stmt->fetchColumn();
+    return ($value === false || $value === null) ? $default : trim((string) $value);
+}
+
+function get_setting_yes(PDO $pdo, string $name): bool {
+    return strcasecmp(get_setting($pdo, $name), 'Yes') === 0;
+}
+
+// The library's own on/off switch for member self-checkout (research R4).
+function require_self_checkout_enabled(PDO $pdo): void {
+    if (!get_setting_yes($pdo, 'mem_self_checkout')) {
+        send_json_error('Self-checkout is not available right now. Please see a volunteer.', 503, 'SELF_CHECKOUT_OFF');
+    }
 }
 
 function read_json_body(): array {
@@ -37,14 +78,55 @@ function read_json_body(): array {
     return is_array($data) ? $data : [];
 }
 
-function send_json($data): void {
+function send_json($data, int $status = 200): void {
+    http_response_code($status);
     header('Content-Type: application/json');
-    header('Access-Control-Allow-Origin: *');
+    header('Cache-Control: no-store');
     echo json_encode($data);
     exit;
 }
 
-function send_json_error(string $message, int $status = 500): void {
-    http_response_code($status);
-    send_json(['error' => $message]);
+function send_json_error(string $message, int $status = 500, ?string $code = null): void {
+    $body = ['error' => $message];
+    if ($code !== null) $body['code'] = $code;
+    send_json($body, $status);
+}
+
+function require_method(string $method): void {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== $method) {
+        send_json_error('Method not allowed.', 405, 'METHOD');
+    }
+}
+
+// New ids for legacy tables (constitution II). Legacy writers mix MAX(id)+1
+// (e.g. desk new_holdid() for toy_holds) with sequence defaults, so a sequence
+// can lag behind the data. Inside the caller's transaction: lock the table, take
+// the larger of MAX(id)+1 and nextval, and move the sequence forward if it was
+// behind. Ported from MEM_V2 api_public/_legacy_writes.php.
+function legacy_allocate_id(PDO $pdo, string $table, string $column = 'id'): int {
+    $allowed = ['transaction' => 'id', 'journal' => 'id', 'toy_holds' => 'id'];
+    if (($allowed[$table] ?? null) !== $column || !$pdo->inTransaction()) {
+        throw new InvalidArgumentException('Invalid legacy ID allocation.');
+    }
+    $pdo->exec("LOCK TABLE public.\"{$table}\" IN SHARE ROW EXCLUSIVE MODE");
+    $id = (int) $pdo->query("SELECT COALESCE(MAX(\"{$column}\"), 0) + 1 FROM public.\"{$table}\"")->fetchColumn();
+
+    // Legacy columns use a plain nextval('...') default rather than an owned
+    // sequence, so pg_get_serial_sequence() is NULL for them: read the default.
+    $stmt = $pdo->prepare("SELECT column_default FROM information_schema.columns
+                           WHERE table_schema = 'public' AND table_name = ? AND column_name = ?");
+    $stmt->execute([$table, $column]);
+    $default = (string) $stmt->fetchColumn();
+    $sequence = preg_match("/nextval\\('([^']+)'::regclass\\)/", $default, $m) ? $m[1] : null;
+    if ($sequence) {
+        $next = $pdo->prepare('SELECT nextval(CAST(? AS regclass))');
+        $next->execute([$sequence]);
+        $sequenceId = (int) $next->fetchColumn();
+        if ($sequenceId > $id) {
+            $id = $sequenceId;
+        } elseif ($id > $sequenceId) {
+            $pdo->prepare('SELECT setval(CAST(? AS regclass), ?, true)')->execute([$sequence, $id]);
+        }
+    }
+    return $id;
 }
