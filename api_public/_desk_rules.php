@@ -17,6 +17,7 @@ const REFUSAL_MESSAGES = [
     'ALREADY_YOURS' => 'You already have this toy on loan.',
     'ON_LOAN' => 'This toy is already on loan. Please see a volunteer.',
     'HELD' => 'This toy is being held for someone else. Please see a volunteer.',
+    'RESERVATION_TOY' => 'Reservation toys cannot be borrowed through self-checkout. Please see a volunteer.',
     'RESERVED' => 'This toy is reserved for someone else. Please see a volunteer.',
     'NOT_IN_CIRCULATION' => "This toy can't be borrowed right now. Please see a volunteer.",
     'QUARANTINE' => "This toy is resting after its last loan and can't be borrowed yet. Please see a volunteer.",
@@ -89,7 +90,7 @@ function load_toy(PDO $pdo, string $idcat, bool $forUpdate = false): ?array {
         $pdo->prepare('SELECT 1 FROM public.toys WHERE upper(idcat) = ? FOR UPDATE')->execute([$idcat]);
     }
     $stmt = $pdo->prepare(
-        "SELECT toys.idcat, toys.toyname, toys.toy_status, toys.stocktake_status,
+        "SELECT toys.idcat, toys.toyname, toys.alert, toys.toy_status, toys.stocktake_status,
                 coalesce(toys.returndateperiod, 0) AS loanperiod, toys.reservecode, toys.loan_type,
                 coalesce(c.weight, 1) AS weight, coalesce(toys.rent, 0) AS rent,
                 coalesce(t.loans, 0) AS loans, coalesce(t.borid, 0) AS onloan_borid,
@@ -158,7 +159,10 @@ function borrow_check(PDO $pdo, array $m, ?array $t, array $s): array {
     if ((int) $t['onloan_borid'] !== 0 || (int) $t['loans'] > 0) {
         return ['code' => (int) $t['onloan_borid'] === (int) $m['id'] ? 'ALREADY_YOURS' : 'ON_LOAN'];
     }
-    if (trim((string) $t['toy_status']) !== 'ACTIVE' && trim((string) $t['toy_status']) !== 'PROCESSING') {
+    if ($t['reservecode'] !== null && $t['reservecode'] !== '') {
+        return ['code' => 'RESERVATION_TOY'];
+    }
+    if (trim((string) $t['toy_status']) !== 'ACTIVE') {
         return ['code' => 'NOT_IN_CIRCULATION'];
     }
     if (trim((string) $t['stocktake_status']) === 'LOCKED' && !yes($s['stocktake_override'])) {

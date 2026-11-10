@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BigButton from "../components/BigButton";
 import BarcodeScanner from "../components/BarcodeScanner";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Message from "../components/Message";
 import ReturnPanel from "../components/ReturnPanel";
-import ToyResults from "../components/ToyResults";
+import ToyResults, { ToyPhoto } from "../components/ToyResults";
 import { useCheckout } from "../context/CheckoutContext";
 import { checkoutApi, newRequestId } from "../lib/checkoutApi";
 import { formatDate, formatShortDate } from "../lib/format";
@@ -36,6 +36,7 @@ export default function MyToysPage() {
   const [lastQuery, setLastQuery] = useState("");
   const [results, setResults] = useState(null);
   const [searchError, setSearchError] = useState("");
+  const [borrowError, setBorrowError] = useState("");
   const [searching, setSearching] = useState(false);
   const [returning, setReturning] = useState(null); // { kind: 'one', item, requestId } | { kind: 'all', loans, requestId }
   const [askClean, setAskClean] = useState(null); // the return waiting for "Have you cleaned it?"
@@ -72,6 +73,7 @@ export default function MyToysPage() {
   }, [loadLoans]);
 
   const runSearch = useCallback(async (q) => {
+    setBorrowError("");
     setSearching(true);
     setSearchError("");
     try {
@@ -203,6 +205,7 @@ export default function MyToysPage() {
   }
 
   const loans = data?.loans ?? [];
+  const returnsEnabled = data?.returns_enabled === true;
   return (
     <div className="space-y-6">
       {askClean && (
@@ -259,27 +262,24 @@ export default function MyToysPage() {
           <div className="overflow-hidden rounded-xl border-2 border-[var(--border-light)]">
             <table className="w-full table-fixed border-collapse bg-[var(--surface)] text-left">
               <colgroup>
-                <col className="w-[20%]" />
+                <col className={returnsEnabled ? "w-[78px]" : "w-[96px]"} />
+                <col className="w-[112px]" />
                 <col />
-                <col className="w-[78px]" />
-                <col className="w-[66px]" />
               </colgroup>
               <thead className="bg-[var(--card-background)] text-sm">
                 <tr>
-                  <th scope="col" className="px-2 py-2 font-semibold">Toy#</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Toyname</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">
+                  {returnsEnabled && (<th scope="col" className="px-2 py-2 font-semibold">
                     Return
-                  </th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Due</th>
+                  </th>)}
+                  {!returnsEnabled && <th scope="col" className="px-2 py-2 font-semibold">Photo</th>}
+                  <th scope="col" className="px-2 py-2 font-semibold">Toy#/Due</th>
+                  <th scope="col" className="px-2 py-2 font-semibold">Toyname</th>
                 </tr>
               </thead>
               <tbody>
                 {loans.map((l) => (
-                  <tr key={l.transaction_id} className="border-t border-[var(--border-light)] align-top">
-                    <td className="px-2 py-3 font-semibold break-words">{l.idcat}</td>
-                    <td className="px-2 py-3 break-words">{l.name}</td>
-                    <td className="px-1 py-2">
+                  <Fragment key={l.transaction_id}><tr className="border-t border-[var(--border-light)] align-top">
+                    {returnsEnabled && (<td rowSpan={l.alert ? 2 : 1} className="px-1 py-2">
                       <button
                         type="button"
                         onClick={() => startReturn({ kind: "one", item: l })}
@@ -288,20 +288,23 @@ export default function MyToysPage() {
                       >
                         Return
                       </button>
-                    </td>
-                    <td className="px-2 py-3 text-sm">
+                    </td>)}
+                    {!returnsEnabled && <td rowSpan={l.alert ? 2 : 1} className="px-2 py-2"><ToyPhoto url={l.image_url} /></td>}
+                    <td className="px-2 py-3"><span className="block font-semibold break-words">{l.idcat}</span><div className="mt-1 text-sm">
                       <span className={l.overdue ? "font-semibold text-[var(--error-text)]" : ""}>
                         {formatShortDate(l.due)}
                       </span>
                       {l.overdue && <span className="block text-xs font-bold text-[var(--error-text)]">Overdue</span>}
-                    </td>
+                    </div></td>
+                    <td className="px-2 py-3 break-words">{l.name}{l.toy_status && l.toy_status.toUpperCase() !== "ACTIVE" && <p className="mt-1 text-sm font-semibold text-[var(--error-text)]">{l.toy_status}</p>}</td>
                   </tr>
+                {l.alert && <tr><td colSpan={2} className="px-2 pb-3 break-words text-sm font-semibold text-[var(--error-text)]">{l.alert.replace(/[\r\n]+/g, " ")}</td></tr>}</Fragment>
                 ))}
               </tbody>
-              {loans.length >= 2 && (
+              {returnsEnabled && loans.length >= 2 && (
                 <tfoot>
                   <tr className="border-t border-[var(--border-light)] bg-[var(--card-background)]">
-                    <td colSpan={2} />
+                    
                     <td colSpan={2} className="px-1 py-2">
                       <button
                         type="button"
@@ -311,6 +314,7 @@ export default function MyToysPage() {
                         Return All
                       </button>
                     </td>
+                    <td />
                   </tr>
                 </tfoot>
               )}
@@ -327,7 +331,7 @@ export default function MyToysPage() {
       <section className="space-y-3" aria-labelledby="search-label">
         <form onSubmit={submitSearch} className="space-y-2">
           <label id="search-label" htmlFor="toy-search" className="block text-lg font-semibold">
-            Search for toys to borrow or return
+            {returnsEnabled ? "Search for toys to borrow or return" : "Search for toys to borrow"}
           </label>
           <div className="flex gap-2">
             <input
@@ -342,6 +346,7 @@ export default function MyToysPage() {
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
+                setBorrowError("");
                 setSearchError("");
               }}
               className="min-h-14 min-w-0 flex-1 rounded-xl border-2 border-[var(--border-light)] bg-[var(--surface)] px-4 text-lg text-[var(--text-primary)] focus:border-[var(--primary-cyan)] focus:outline-none"
@@ -354,6 +359,7 @@ export default function MyToysPage() {
               {searching ? "…" : "Go"}
             </button>
           </div>
+          {borrowError && <p role="alert" className="text-sm font-semibold text-[var(--error-text)]">{borrowError}</p>}
         </form>
         <BigButton variant="secondary" onClick={() => setScanning(true)}>
           <span aria-hidden="true">📷 </span>Scan toy barcode
@@ -362,9 +368,10 @@ export default function MyToysPage() {
         {searchError && <Message tone="error">{searchError}</Message>}
         {results && (
           <ToyResults
-            results={results}
+            results={results} returnsEnabled={returnsEnabled}
             onChange={setResults}
             onBorrowed={borrowed}
+            onBorrowError={setBorrowError}
             onReturn={(item) => startReturn({ kind: "one", item })}
           />
         )}

@@ -16,6 +16,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => `/mibase_checkout${path}`,
       },
+      "/login_image": {
+        target: "http://localhost",
+        changeOrigin: true,
+      },
       "/toy_images": {
         target: "http://localhost",
         changeOrigin: true,

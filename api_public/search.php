@@ -1,18 +1,17 @@
 <?php
 // POST /api_public/search.php {q} - find toys to borrow or return (FR-010a-e).
-// Lists every matching toy still in the collection, exact toy ID first. Each row
+// Lists every matching toy across all statuses, exact toy ID first. Each row
 // says what the member can do with it; rows they can't use carry only a general
 // label, never who has the toy, when it is due back, or who reserved it.
 // Read-only: borrow.php checks everything again when the member confirms.
 require_once __DIR__ . '/_checkout_session.php';
 require_once __DIR__ . '/_desk_rules.php';
 
-// Toys that have left the collection are not listed at all.
-const SEARCH_GONE_STATUSES = ['WITHDRAWN', 'SOLD', 'DELETE', 'DELETED', 'RESIGNED'];
 
 // borrow_check codes that are about the toy, mapped to the label members see.
 const SEARCH_LABELS = [
     'ON_LOAN' => 'On loan',
+    'RESERVATION_TOY' => 'Reservation toy',
     'RESERVED' => 'Reserved',
     'HELD' => 'Reserved',
 ];
@@ -28,13 +27,11 @@ try {
         send_json_error('Type at least 2 letters or numbers of the toy ID or name.', 400, 'INVALID_INPUT');
     }
     $like = '%' . strtr($q, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']) . '%';
-    $gone = implode(',', array_fill(0, count(SEARCH_GONE_STATUSES), '?'));
     $stmt = $pdo->prepare(
         "SELECT idcat FROM public.toys
           WHERE (idcat ILIKE ? OR toyname ILIKE ?)
-            AND upper(trim(coalesce(toy_status, ''))) NOT IN ($gone)
           ORDER BY (upper(idcat) = upper(?)) DESC, idcat");
-    $stmt->execute(array_merge([$like, $like], SEARCH_GONE_STATUSES, [$q]));
+    $stmt->execute([$like, $like, $q]);
     $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
     $s = desk_settings($pdo);
@@ -52,7 +49,7 @@ try {
         $toy = load_toy($pdo, $idcat);
         if (!$toy) continue;
         $code = borrow_check($pdo, $probe, $toy, $s)['code'];
-        $row = ['idcat' => $toy['idcat'], 'name' => $toy['toyname'], 'image_url' => toy_image_url($toy['idcat'])];
+        $row = ['idcat' => $toy['idcat'], 'name' => $toy['toyname'], 'toy_status' => trim((string) ($toy['toy_status'] ?? '')), 'alert' => trim((string) ($toy['alert'] ?? '')), 'image_url' => toy_image_url($toy['idcat'])];
         if ($code === null) {
             $row['action'] = 'borrow';
             $row['due'] = due_date($member, $toy, $s);

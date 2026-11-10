@@ -9,7 +9,7 @@ try {
 
     $stmt = $pdo->prepare(
         "SELECT t.id AS transaction_id, t.idcat, coalesce(toys.toyname, t.item, t.idcat) AS name,
-                t.due, (t.due < current_date) AS overdue
+                t.due, toys.toy_status, coalesce(toys.alert, '') AS alert, (t.due < current_date) AS overdue
            FROM public.transaction t
            LEFT JOIN public.toys ON upper(toys.idcat) = upper(t.idcat)
           WHERE t.borid = ? AND t.return IS NULL
@@ -19,6 +19,9 @@ try {
         'transaction_id' => (int) $r['transaction_id'],
         'idcat' => $r['idcat'],
         'name' => $r['name'],
+        'alert' => trim((string) $r['alert']),
+        'toy_status' => trim((string) ($r['toy_status'] ?? '')),
+        'image_url' => toy_image_url($r['idcat']),
         'due' => $r['due'],
         'overdue' => (bool) $r['overdue'],
     ], $stmt->fetchAll());
@@ -29,6 +32,7 @@ try {
     $limit->execute([(int) $visit['borid']]);
     send_json([
         'loans' => $loans,
+        'returns_enabled' => strcasecmp(get_setting($pdo, 'mem_returns'), 'No') !== 0,
         'member_id' => (int) $visit['borid'],
         'max_items' => (int) $limit->fetchColumn(),
         'count' => count($loans),

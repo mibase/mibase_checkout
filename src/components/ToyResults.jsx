@@ -5,8 +5,8 @@ import { formatDate } from "../lib/format";
 // Toy codes that make a toy unborrowable for everyone; a refusal with one of
 // these greys the row out (FR-010e). Member-level refusals (limit, membership)
 // leave the row as it is.
-const TOY_LABELS = { ON_LOAN: "On loan", RESERVED: "Reserved", HELD: "Reserved" };
-const TOY_CODES = new Set(["ON_LOAN", "RESERVED", "HELD", "NOT_IN_CIRCULATION", "QUARANTINE", "STOCKTAKE", "NOT_FOUND"]);
+const TOY_LABELS = { RESERVATION_TOY: "Reservation toy", ON_LOAN: "On loan", RESERVED: "Reserved", HELD: "Reserved" };
+const TOY_CODES = new Set(["RESERVATION_TOY", "ON_LOAN", "RESERVED", "HELD", "NOT_IN_CIRCULATION", "QUARANTINE", "STOCKTAKE", "NOT_FOUND"]);
 
 const smallButton =
   "min-h-11 shrink-0 rounded-lg px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50";
@@ -14,7 +14,7 @@ const smallButton =
 // The toy's photo (from search.php, '' when it has none; a teddy is shown then). Lazy-loaded so a
 // long result list doesn't download every photo on mobile data. Tapping it
 // shows it larger; tapping again shrinks it.
-function ToyPhoto({ url, inactive }) {
+export function ToyPhoto({ url, inactive }) {
   const [failed, setFailed] = useState(false);
   const [big, setBig] = useState(false);
   const box = "h-20 w-20 shrink-0 rounded-xl border border-[var(--border-light)] bg-[var(--card-background)]";
@@ -55,7 +55,7 @@ function ToyPhoto({ url, inactive }) {
 
 // Search results (FR-010b): Borrow (with due date), Return (on loan to this
 // member), or greyed out with a general status and no button.
-export default function ToyResults({ results, onChange, onBorrowed, onReturn }) {
+export default function ToyResults({ results, onChange, onBorrowed, onReturn, onBorrowError, returnsEnabled = false }) {
   const [confirming, setConfirming] = useState(null); // { idcat, requestId }
   const [busy, setBusy] = useState(false);
   const [rowError, setRowError] = useState({});
@@ -65,6 +65,7 @@ export default function ToyResults({ results, onChange, onBorrowed, onReturn }) 
   }
 
   function startBorrow(row) {
+    onBorrowError?.("");
     setRowError((e) => ({ ...e, [row.idcat]: "" }));
     setConfirming({ idcat: row.idcat, requestId: newRequestId() }); // reused if Confirm is retried
   }
@@ -80,6 +81,7 @@ export default function ToyResults({ results, onChange, onBorrowed, onReturn }) 
       if (err.code === "SESSION_EXPIRED") return;
       setConfirming(null);
       setRowError((e) => ({ ...e, [row.idcat]: err.message }));
+      onBorrowError?.(`${row.idcat}: ${err.message}`);
       if (TOY_CODES.has(err.code)) {
         onChange(results.map((x) =>
           x.idcat === row.idcat ? { ...x, action: "none", status_label: TOY_LABELS[err.code] ?? "Not available" } : x
@@ -111,9 +113,11 @@ export default function ToyResults({ results, onChange, onBorrowed, onReturn }) 
                 <p className={`text-sm ${inactive ? "" : "text-[var(--muted-text)]"}`}>
                   {row.idcat}
                   {row.action === "borrow" && <> · due back {formatDate(row.due)}</>}
-                  {row.action === "return" && <> · on loan to you</>}
-                  {inactive && <> · {row.status_label}</>}
+                  {row.action === "return" && <span className="ml-2 inline-flex rounded-full bg-[var(--primary-cyan)] px-2 py-0.5 text-xs font-semibold text-[var(--on-accent)]">On loan to you</span>}
+                  {inactive && (row.status_label === "On loan" ? <span className="ml-2 inline-flex rounded-full border border-[var(--inactive-border)] bg-[var(--card-background)] px-2 py-0.5 text-xs font-semibold text-[var(--text-primary)]">On loan</span> : <> · {row.status_label}</>)}
                 </p>
+                {row.toy_status && row.toy_status.toUpperCase() !== "ACTIVE" && <p className="mt-1 text-sm font-semibold text-[var(--error-text)]">{row.toy_status}</p>}
+                {row.alert && <p className="mt-1 text-sm font-semibold text-[var(--error-text)]">{row.alert.replace(/[\r\n]+/g, " ")}</p>}
               </div>
               {row.action === "borrow" && !isConfirming && (
                 <button
@@ -125,7 +129,7 @@ export default function ToyResults({ results, onChange, onBorrowed, onReturn }) 
                   Borrow
                 </button>
               )}
-              {row.action === "return" && (
+              {returnsEnabled && row.action === "return" && (
                 <button
                   type="button"
                   onClick={() => onReturn({ idcat: row.idcat, name: row.name })}
