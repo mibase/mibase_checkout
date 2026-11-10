@@ -6,6 +6,7 @@
 // or stored.
 require_once __DIR__ . '/_checkout_session.php';
 require_once __DIR__ . '/_attempts.php';
+require_once __DIR__ . '/_qr.php';
 require_once __DIR__ . '/_desk_rules.php';
 
 const BAD_CREDENTIALS_MESSAGE = "Member ID or PIN is incorrect. If you don't have a PIN, please see a volunteer.";
@@ -18,6 +19,7 @@ function fail_slowly(string $message, int $status, string $code): void {
 
 try {
     require_method('POST');
+    checkout_require_qr();
     $pdo = get_db_connection();
     require_self_checkout_enabled($pdo);
 

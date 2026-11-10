@@ -7,14 +7,15 @@ import { checkoutApi } from "../lib/checkoutApi";
 // that fails to load, leaves just the name.
 export default function Layout() {
   const [library, setLibrary] = useState({ name: "", logo: "" });
+  const [qrAllowed, setQrAllowed] = useState(null);
   const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     checkoutApi
       .status()
-      .then((s) => alive && setLibrary({ name: s.library_name || "", logo: s.logo_url || "" }))
-      .catch(() => {});
+      .then((s) => { if (alive) { setLibrary({ name: s.library_name || "", logo: s.logo_url || "" }); setQrAllowed(s.qr_authorized === true); } })
+      .catch(() => { if (alive) setQrAllowed(false); });
     return () => {
       alive = false;
     };
@@ -37,7 +38,7 @@ export default function Layout() {
         </div>
       </header>
       <main className="flex-1 mx-auto w-full max-w-md px-4 py-6">
-        <Outlet />
+        {qrAllowed === null ? <p>Loading…</p> : qrAllowed ? <Outlet /> : <p role="alert">Please scan the QR code at the library to start self-checkout.</p>}
       </main>
     </div>
   );

@@ -2,12 +2,14 @@
 // GET /api_public/status.php - is self-checkout on, and is there a live visit?
 // Never creates or refreshes a session.
 require_once __DIR__ . '/_checkout_session.php';
+require_once __DIR__ . '/_qr.php';
 
 try {
     $pdo = get_db_connection();
     $visit = checkout_peek();
     $minutes = checkout_config()['session_minutes'];
     send_json([
+        'qr_authorized' => checkout_qr_allowed() || $visit !== null,
         'enabled' => get_setting_yes($pdo, 'mem_self_checkout'),
         'library_name' => get_setting($pdo, 'libraryname'),
         'logo_url' => library_logo_url(),

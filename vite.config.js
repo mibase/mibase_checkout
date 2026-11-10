@@ -11,6 +11,7 @@ export default defineConfig({
   server: {
     port: 5175,
     proxy: {
+      "/mibase_checkout/checkqr.php": { target: "http://localhost", changeOrigin: true },
       "/api_public": {
         target: "http://localhost",
         changeOrigin: true,
