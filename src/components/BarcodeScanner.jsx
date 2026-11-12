@@ -28,17 +28,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
         const hints = new Map([
           [
             DecodeHintType.POSSIBLE_FORMATS,
-            [
-              BarcodeFormat.CODE_128,
-              BarcodeFormat.CODE_39,
-              BarcodeFormat.CODE_93,
-              BarcodeFormat.CODABAR,
-              BarcodeFormat.EAN_13,
-              BarcodeFormat.EAN_8,
-              BarcodeFormat.UPC_A,
-              BarcodeFormat.ITF,
-              BarcodeFormat.QR_CODE,
-            ],
+            [BarcodeFormat.CODE_39],
           ],
         ]);
         const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 150 });
